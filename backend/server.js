@@ -175,6 +175,13 @@ io.on("connection", (socket) => {
             ambulanceLocation: location,
             distance: distance.toFixed(2),
           });
+        } else {
+          // 🔥 stream live driver location while still nearby
+          io.to(police.socketId).emit("ambulance_location_update", {
+            driverId,
+            ambulanceLocation: location,
+            distance: distance.toFixed(2),
+          });
         }
       } else {
         if (wasNearby) {
@@ -188,6 +195,27 @@ io.on("connection", (socket) => {
   // 🚑 PATIENT PICKED
   socket.on("patient_picked", ({ patientId }) => {
     io.to(patientId).emit("tripStarted");
+  });
+
+  // 🏁 TRIP ENDED (cleanup tracking)
+  socket.on("trip_ended", ({ driverId }) => {
+    if (!driverId) return;
+
+    // Remove cached ambulance location so police proximity doesn't re-trigger.
+    delete ambulanceLocations[driverId];
+
+    // Clear proximity state and force-hide map for any police who were tracking it.
+    Object.entries(policeLocations).forEach(([policeId, police]) => {
+      const wasNearby = Boolean(proximityState?.[policeId]?.[driverId]);
+      if (proximityState[policeId]) proximityState[policeId][driverId] = false;
+
+      if (wasNearby && police?.socketId) {
+        io.to(police.socketId).emit("ambulance_left", {
+          driverId,
+          reason: "tripEnded",
+        });
+      }
+    });
   });
 
   // 🚓 POLICE LOCATION UPDATE
@@ -213,6 +241,13 @@ io.on("connection", (socket) => {
         if (!wasNearby) {
           proximityState[policeId][driverId] = true;
           io.to(socket.id).emit("ambulance_nearby", {
+            driverId,
+            ambulanceLocation: ambLoc,
+            distance: distance.toFixed(2),
+          });
+        } else {
+          // 🔥 keep streaming current ambulance location on police movement too
+          io.to(socket.id).emit("ambulance_location_update", {
             driverId,
             ambulanceLocation: ambLoc,
             distance: distance.toFixed(2),

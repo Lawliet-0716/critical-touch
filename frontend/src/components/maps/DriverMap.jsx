@@ -12,7 +12,6 @@ export default function DriverMap({ driverLocation, patientLocation }) {
   const [smoothLoc, setSmoothLoc] = useState(driverLocation);
   const [directions, setDirections] = useState(null);
   const [info, setInfo] = useState(null);
-  const [heading, setHeading] = useState(0);
 
   // 🔥 SMOOTH MOVEMENT + HEADING
   useEffect(() => {
@@ -31,10 +30,6 @@ export default function DriverMap({ driverLocation, patientLocation }) {
         lat: prev.lat + latDiff / steps,
         lng: prev.lng + lngDiff / steps,
       }));
-
-      // 🔥 HEADING (ROTATION)
-      const angle = (Math.atan2(lngDiff, latDiff) * 180) / Math.PI;
-      setHeading(angle);
 
       if (i >= steps) clearInterval(interval);
     }, 50);

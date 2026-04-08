@@ -216,6 +216,16 @@ exports.completeEmergency = async (req, res) => {
       io.to(emergency.driver.toString()).emit("tripEnded", {
         emergencyId: emergency._id.toString(),
       });
+
+      // 🔥 also clear any active police alert map for this ambulance/driver
+      // Police clients only hide the map on "ambulance_left". If the trip ends,
+      // the driver may stop sending location updates, so police would never
+      // receive an "ambulance_left" naturally.
+      io.to("police").emit("ambulance_left", {
+        driverId: emergency.driver.toString(),
+        reason: "tripEnded",
+        emergencyId: emergency._id.toString(),
+      });
     }
 
     res.status(200).json({

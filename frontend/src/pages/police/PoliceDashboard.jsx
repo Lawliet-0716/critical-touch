@@ -62,6 +62,16 @@ export default function PoliceDashboard() {
       setAlert(data);
     });
 
+    socket.on("ambulance_location_update", (data) => {
+      setAlert((prev) => {
+        if (!prev) return data;
+        if (prev?.driverId && data?.driverId && prev.driverId !== data.driverId) {
+          return prev;
+        }
+        return { ...prev, ...data };
+      });
+    });
+
     socket.on("ambulance_left", (data) => {
       console.log("✅ Ambulance left:", data);
       setAlert(null); // 🔥 remove alert
@@ -69,6 +79,7 @@ export default function PoliceDashboard() {
 
     return () => {
       socket.off("ambulance_nearby");
+      socket.off("ambulance_location_update");
       socket.off("ambulance_left");
     };
   }, []);

@@ -66,6 +66,10 @@ export default function DriverEmergencyPage() {
 
     try {
       await api.put(`/emergency/${emergency._id}/complete`);
+      // Ensure police tracking is cleared immediately (server-side caches)
+      socket.emit("trip_ended", {
+        driverId: emergency.driver,
+      });
     } catch (err) {
       console.error(err);
     } finally {

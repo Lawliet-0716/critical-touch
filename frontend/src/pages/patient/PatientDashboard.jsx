@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Ambulance, HeartPulse, Video } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -11,9 +11,56 @@ export default function PatientDashboard() {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState(null);
   const [consultation, setConsultation] = useState(null);
   const [booking, setBooking] = useState(null);
   const [loadingBooking, setLoadingBooking] = useState(true);
+  const [nowTick, setNowTick] = useState(0);
+
+  const consultationSlot = consultation?.scheduledAt || null;
+
+  const joinState = useMemo(() => {
+    if (!consultationSlot) return { canJoin: false, slotText: null };
+
+    // scheduledAt is stored as a slot like "10:00 AM"
+    const m = String(consultationSlot)
+      .trim()
+      .match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+
+    if (!m) return { canJoin: true, slotText: consultationSlot }; // unknown format → don't block
+
+    let hours = Number(m[1]);
+    const minutes = Number(m[2] ?? "0");
+    const ampm = m[3].toUpperCase();
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+      return { canJoin: true, slotText: consultationSlot };
+    }
+
+    hours = hours % 12;
+    if (ampm === "PM") hours += 12;
+
+    const slot = new Date();
+    slot.setSeconds(0, 0);
+    slot.setHours(hours, minutes, 0, 0);
+
+    const now = new Date();
+    const closeAfterMin = 45;
+    const closeAt = new Date(slot.getTime() + closeAfterMin * 60 * 1000);
+
+    return {
+      // Only allow joining at/after the exact scheduled time.
+      canJoin: now >= slot && now <= closeAt,
+      slotText: consultationSlot,
+    };
+  }, [consultationSlot, nowTick]);
+
+  // Re-evaluate join eligibility over time (so it appears automatically).
+  useEffect(() => {
+    if (!consultationSlot) return;
+    const id = setInterval(() => setNowTick((x) => x + 1), 15_000);
+    return () => clearInterval(id);
+  }, [consultationSlot]);
 
   // 🚨 SOS
   const handleSOS = async () => {
@@ -139,6 +186,21 @@ export default function PatientDashboard() {
     return () => clearInterval(interval);
   }, [user]);
 
+  // 👤 Load patient profile (name + UHID)
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get("/auth/patient/me");
+        setProfile(res.data?.patient || null);
+      } catch (err) {
+        console.error(err);
+        setProfile(null);
+      }
+    };
+
+    if (user?.id) fetchProfile();
+  }, [user?.id]);
+
   // 🔌 SOCKET
   useEffect(() => {
     if (!socket.connected) socket.connect();
@@ -166,15 +228,46 @@ export default function PatientDashboard() {
     }
   };
 
+  const handleCancelConsultation = async () => {
+    if (!consultation?._id) return;
+    try {
+      await api.put(`/consultation/cancel/${consultation._id}`);
+      setConsultation(null);
+      alert("✅ Appointment cancelled");
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Cancel failed");
+    }
+  };
+
   if (!user) return <p>Loading...</p>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
       {/* HEADER */}
       <div className="bg-white p-5 rounded-2xl shadow-md mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-800">{user.name}</h1>
-          <p className="text-sm text-gray-500">UHID: {user.uhid}</p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/patient/edit")}
+            className="w-11 h-11 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shadow"
+            title="Edit profile"
+            type="button"
+          >
+            {profile?.firstName
+              ? profile.firstName.charAt(0).toUpperCase()
+              : "P"}
+          </button>
+
+          <div>
+            <h1 className="text-lg font-semibold text-gray-800">
+              {profile
+                ? `${profile.firstName} ${profile.lastName}`.trim()
+                : "Patient"}
+            </h1>
+            <p className="text-sm text-gray-500">
+              UHID: {profile?.uhid || "N/A"}
+            </p>
+          </div>
         </div>
         <p className="text-green-500 text-sm font-semibold">● Online</p>
       </div>
@@ -256,15 +349,45 @@ export default function PatientDashboard() {
         )}
 
         {consultation?.status === "booked" && (
-          <p className="text-yellow-600">⏳ Waiting for doctor to accept...</p>
+          <div className="text-yellow-700">
+            <p>⏳ Waiting for doctor to accept...</p>
+            {consultation?.scheduledAt && (
+              <p className="text-sm text-gray-600 mt-1">
+                Scheduled at: {consultation.scheduledAt}
+              </p>
+            )}
+          </div>
         )}
 
         {consultation?.status === "accepted" && (
+          <>
+            {!joinState.canJoin ? (
+              <p className="text-sm text-gray-700">
+                Scheduled at: {joinState.slotText || consultation.scheduledAt}
+              </p>
+            ) : (
+              <button
+                onClick={handleJoin}
+                className="bg-green-500 text-white px-4 py-2 rounded"
+              >
+                🎥 Join Call
+              </button>
+            )}
+            <button
+              onClick={handleCancelConsultation}
+              className="ml-3 bg-red-500 text-white px-4 py-2 rounded"
+            >
+              Cancel Appointment
+            </button>
+          </>
+        )}
+
+        {consultation?.status === "booked" && (
           <button
-            onClick={handleJoin}
-            className="bg-green-500 text-white px-4 py-2 rounded"
+            onClick={handleCancelConsultation}
+            className="mt-3 bg-red-500 text-white px-4 py-2 rounded"
           >
-            🎥 Join Call
+            Cancel Appointment
           </button>
         )}
       </div>

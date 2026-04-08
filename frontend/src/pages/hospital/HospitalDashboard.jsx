@@ -163,6 +163,10 @@ export default function HospitalDashboard() {
             </p>
 
             <p>
+              <strong>UHID:</strong> {emergency.booking?.uhid || "N/A"}
+            </p>
+
+            <p>
               <strong>Condition:</strong>{" "}
               {emergency.booking?.condition || "Emergency"}
             </p>

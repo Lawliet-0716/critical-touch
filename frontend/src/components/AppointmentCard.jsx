@@ -1,5 +1,47 @@
+import { useEffect, useMemo, useState } from "react";
+
 export default function AppointmentCard({ consultation, role, onAccept }) {
   if (!consultation) return null;
+
+  const [nowTick, setNowTick] = useState(0);
+
+  const joinState = useMemo(() => {
+    const slot = consultation?.scheduledAt;
+    if (!slot) return { canJoin: false, slotText: null };
+
+    const m = String(slot)
+      .trim()
+      .match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+
+    if (!m) return { canJoin: true, slotText: slot }; // unknown format → don't block
+
+    let hours = Number(m[1]);
+    const minutes = Number(m[2] ?? "0");
+    const ampm = m[3].toUpperCase();
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+      return { canJoin: true, slotText: slot };
+    }
+
+    hours = hours % 12;
+    if (ampm === "PM") hours += 12;
+
+    const scheduled = new Date();
+    scheduled.setSeconds(0, 0);
+    scheduled.setHours(hours, minutes, 0, 0);
+
+    const now = new Date();
+    const closeAfterMin = 45;
+    const closeAt = new Date(scheduled.getTime() + closeAfterMin * 60 * 1000);
+
+    return { canJoin: now >= scheduled && now <= closeAt, slotText: slot };
+  }, [consultation?.scheduledAt, nowTick]);
+
+  useEffect(() => {
+    if (!consultation?.scheduledAt) return;
+    const id = setInterval(() => setNowTick((x) => x + 1), 15_000);
+    return () => clearInterval(id);
+  }, [consultation?.scheduledAt]);
 
   return (
     <div className="bg-white shadow-md rounded-lg p-4 mb-4 border">
@@ -59,14 +101,22 @@ export default function AppointmentCard({ consultation, role, onAccept }) {
 
         {/* 🎥 JOIN CALL */}
         {consultation.status === "accepted" && (
-          <button
-            onClick={() =>
-              (window.location.href = `/consultation/${consultation._id}`)
-            }
-            className="bg-blue-600 text-white px-3 py-1 rounded"
-          >
-            Join Call
-          </button>
+          <>
+            {!joinState.canJoin ? (
+              <span className="text-sm text-gray-700">
+                Scheduled at: {joinState.slotText || consultation.scheduledAt}
+              </span>
+            ) : (
+              <button
+                onClick={() =>
+                  (window.location.href = `/consultation/${consultation._id}`)
+                }
+                className="bg-blue-600 text-white px-3 py-1 rounded"
+              >
+                Join Call
+              </button>
+            )}
+          </>
         )}
 
         {/* ✅ COMPLETED */}

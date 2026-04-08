@@ -7,7 +7,9 @@ export default function EmergencyPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
 
-  const initialEmergency = state?.emergency || null;
+  const stored = localStorage.getItem("emergency");
+  const initialEmergency =
+    state?.emergency || (stored ? JSON.parse(stored) : null);
 
   const [emergency, setEmergency] = useState(initialEmergency);
   const [driverLocation, setDriverLocation] = useState(null);
@@ -29,6 +31,17 @@ export default function EmergencyPage() {
         userId: emergency.patient,
         role: "patient",
       });
+    }
+  }, [emergency]);
+
+  // persist emergency for reloads/navigation
+  useEffect(() => {
+    if (emergency?._id) {
+      try {
+        localStorage.setItem("emergency", JSON.stringify(emergency));
+      } catch {
+        // ignore
+      }
     }
   }, [emergency]);
 

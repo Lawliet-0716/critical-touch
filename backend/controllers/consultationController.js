@@ -191,6 +191,55 @@ exports.completeConsultation = async (req, res) => {
 };
 
 // =======================
+// ❌ CANCEL CONSULTATION (PATIENT)
+// =======================
+exports.cancelConsultation = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid consultation ID" });
+    }
+
+    const consultation = await Consultation.findById(id);
+    if (!consultation) {
+      return res.status(404).json({ message: "Consultation not found" });
+    }
+
+    const patientId = req.user._id || req.user.id;
+    if (consultation.patient.toString() !== String(patientId)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    if (!["booked", "accepted"].includes(consultation.status)) {
+      return res
+        .status(400)
+        .json({ message: "Only active consultations can be cancelled" });
+    }
+
+    consultation.status = "cancelled";
+    await consultation.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(consultation.patient.toString()).emit(
+        "consultationCancelled",
+        consultation,
+      );
+      io.to(`hospital_${consultation.hospital}`).emit(
+        "consultationCancelled",
+        consultation,
+      );
+    }
+
+    res.json({ success: true, consultation });
+  } catch (error) {
+    console.error("❌ Cancel Error:", error);
+    res.status(500).json({ message: "Error cancelling consultation" });
+  }
+};
+
+// =======================
 // ✅ GET ALL CONSULTATIONS (HOSPITAL)
 // =======================
 exports.getAllConsultations = async (req, res) => {

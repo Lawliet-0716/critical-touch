@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const consultationController = require("../controllers/consultationController");
-const { protect } = require("../middleware/protect");
+const { protect, authorize } = require("../middleware/protect");
 
 // =======================
 // 📋 FETCH ROUTES
@@ -29,6 +29,14 @@ router.put(
   "/complete/:id",
   protect,
   consultationController.completeConsultation,
+);
+
+// ❌ Patient → cancel consultation
+router.put(
+  "/cancel/:id",
+  protect,
+  authorize("patient"),
+  consultationController.cancelConsultation,
 );
 
 // =======================

@@ -85,7 +85,10 @@ Immediate help needed!`;
           // keep payload shape compatible with existing HospitalDashboard
           booking: {
             location: { lat, lng },
-            patientName: patient?.firstName || "Patient",
+            patientName: patient
+              ? `${patient.firstName} ${patient.lastName}`.trim()
+              : "Patient",
+            uhid: patient?.uhid,
             condition: emergencyType || "Emergency",
             vehicleType: "SOS",
             patientId: req.user.id,

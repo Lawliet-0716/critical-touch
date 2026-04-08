@@ -3,6 +3,7 @@
 const Driver = require("../models/Driver");
 const PreBooking = require("../models/PreBooking");
 const Hospital = require("../models/Hospital");
+const Patient = require("../models/Patient");
 
 // =======================
 // 📍 DISTANCE FUNCTION
@@ -72,8 +73,26 @@ exports.findMatchingDrivers = async (booking, io) => {
     if (nearestHospital && io) {
       console.log("🏥 Nearest hospital:", nearestHospital._id);
 
+      let patient = null;
+      try {
+        if (booking?.patient) {
+          patient = await Patient.findById(booking.patient).select(
+            "uhid firstName lastName",
+          );
+        }
+      } catch {
+        // ignore
+      }
+
       io.to(`hospital_${nearestHospital._id}`).emit("newEmergency", {
-        booking,
+        booking: {
+          ...booking,
+          patientName: patient
+            ? `${patient.firstName} ${patient.lastName}`.trim()
+            : booking?.patientName,
+          uhid: patient?.uhid,
+          location: booking?.pickupLocation || booking?.location,
+        },
         hospital: nearestHospital,
         distance: minDistance,
       });

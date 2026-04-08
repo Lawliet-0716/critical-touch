@@ -5,6 +5,7 @@ import RoleSelection from "../pages/common/RoleSelection";
 import PatientLogin from "../pages/patient/PatientLogin";
 import PatientSignup from "../pages/patient/PatientSignup";
 import PatientDashboard from "../pages/patient/PatientDashboard";
+import EditPatient from "../pages/patient/EditPatient";
 
 import DriverLogin from "../pages/driver/DriverLogin";
 import DriverSignup from "../pages/driver/DriverSignup";
@@ -66,6 +67,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute role="patient">
             <PatientDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/patient/edit"
+        element={
+          <ProtectedRoute role="patient">
+            <EditPatient />
           </ProtectedRoute>
         }
       />

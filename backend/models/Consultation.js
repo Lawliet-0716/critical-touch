@@ -31,7 +31,7 @@ const consultationSchema = new mongoose.Schema(
     // 📊 STATUS
     status: {
       type: String,
-      enum: ["booked", "accepted", "completed"],
+      enum: ["booked", "accepted", "completed", "cancelled"],
       default: "booked",
     },
 

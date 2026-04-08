@@ -236,7 +236,7 @@ export default function PatientDashboard() {
           )}
         </div>
 
-        <AISuggestions />
+        <AISuggestions handleSOS={handleSOS} />
       </div>
 
       {/* 🩺 CONSULTATION */}

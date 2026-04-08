@@ -31,6 +31,7 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import VideoConsult from "../components/VideoConsult";
 
 import BookConsultation from "../pages/patient/BookConsultation";
+import AIPage from "../pages/patient/AiPage";
 
 export default function AppRoutes() {
   return (
@@ -125,6 +126,7 @@ export default function AppRoutes() {
       {/* CONSULTATION */}
       <Route path="/consultation/:id" element={<VideoConsult />} />
       <Route path="/consultation/book" element={<BookConsultation />} />
+      <Route path="/patient/ai" element={<AIPage />} />
     </Routes>
   );
 }

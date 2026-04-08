@@ -1,70 +1,31 @@
-import { useState } from "react";
-import api from "../services/api";
+import { useNavigate } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 
 export default function AISuggestions() {
-  const [text, setText] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleGetSuggestions = async () => {
-    console.log("BUTTON CLICKED"); // ✅ debug
-
-    if (!text.trim()) {
-      alert("Please enter symptoms");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const res = await api.post("/ai/suggest", { text });
-
-      console.log("API RESPONSE:", res.data); // ✅ debug
-
-      setResult(res.data);
-    } catch (err) {
-      console.error("AI Error:", err);
-      alert("Failed to get AI suggestions");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const navigate = useNavigate();
 
   return (
-    <div className="bg-white p-4 rounded-xl shadow">
-      <h2 className="font-semibold mb-2">AI Suggestions</h2>
+    <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 rounded-2xl shadow-lg text-white">
+      {/* ICON + TITLE */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="bg-white text-green-600 p-2 rounded-full">
+          <Sparkles size={20} />
+        </div>
+        <h2 className="text-lg font-semibold">AI Health Assistant</h2>
+      </div>
 
-      {/* INPUT */}
-      <input
-        type="text"
-        placeholder="Describe symptoms..."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        className="w-full border p-2 rounded mb-3"
-      />
+      {/* DESCRIPTION */}
+      <p className="text-sm text-green-100 mb-5">
+        Describe your symptoms and get instant medical guidance powered by AI.
+      </p>
 
       {/* BUTTON */}
       <button
-        onClick={handleGetSuggestions} // ✅ IMPORTANT
-        className="bg-green-500 text-white px-4 py-2 rounded"
+        onClick={() => navigate("/patient/ai")}
+        className="w-full bg-white text-green-600 font-semibold py-2 rounded-lg hover:bg-gray-100 transition duration-200"
       >
-        {loading ? "Analyzing..." : "Get Suggestions"}
+        🤖 Start AI Consultation
       </button>
-
-      {/* RESULT */}
-      {result && (
-        <div className="mt-4 p-3 border rounded bg-gray-50">
-          <p>
-            <b>Severity:</b> {result.severity_level}
-          </p>
-          <p>
-            <b>Action:</b> {result.recommended_action}
-          </p>
-          <p>
-            <b>Advice:</b> {result.remedies}
-          </p>
-        </div>
-      )}
     </div>
   );
 }

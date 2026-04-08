@@ -20,6 +20,14 @@ router.get(
   emergencyController.getPendingEmergencies,
 );
 
+// 🏥 Hospital → view nearest pending emergency
+router.get(
+  "/pending-hospital",
+  middleware.protect,
+  middleware.authorize("hospital"),
+  emergencyController.getHospitalPendingEmergency,
+);
+
 // 🚑 Driver → accept request
 router.put(
   "/:id/accept",

@@ -66,6 +66,7 @@ Immediate help needed!`;
     try {
       const hospitals = await Hospital.find().select("hospitalName location");
       let nearestHospital = null;
+      let nearestHospitalLocation = null;
       let minDistance = Infinity;
 
       for (const hospital of hospitals) {
@@ -77,10 +78,25 @@ Immediate help needed!`;
         if (d < minDistance) {
           minDistance = d;
           nearestHospital = hospital;
+          nearestHospitalLocation = { lat: hLat, lng: hLng };
         }
       }
 
+      if (nearestHospital && nearestHospitalLocation) {
+        emergency.hospital = nearestHospital._id;
+        emergency.destination = {
+          address: nearestHospital.hospitalName || "Nearest Hospital",
+          ...nearestHospitalLocation,
+        };
+        await emergency.save();
+        console.log("✅ [createEmergency] Hospital assigned:", nearestHospital._id, "Name:", nearestHospital.hospitalName);
+        console.log("📍 [createEmergency] Destination saved:", emergency.destination);
+      } else {
+        console.warn("⚠️ [createEmergency] No nearest hospital found or invalid location");
+      }
+
       if (nearestHospital && io) {
+        console.log("📢 [createEmergency] Emitting newEmergency to hospital room:", `hospital_${nearestHospital._id.toString()}`);
         io.to(`hospital_${nearestHospital._id.toString()}`).emit("newEmergency", {
           // keep payload shape compatible with existing HospitalDashboard
           booking: {
@@ -99,6 +115,8 @@ Immediate help needed!`;
             _id: emergency._id,
             patient: emergency.patient,
             location: emergency.location,
+            destination: emergency.destination,
+            hospital: emergency.hospital,
             emergencyType: emergency.emergencyType,
             status: emergency.status,
             createdAt: emergency.createdAt,
@@ -170,6 +188,109 @@ exports.getPendingEmergencies = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// =======================
+// 🏥 GET NEAREST PENDING EMERGENCY FOR HOSPITAL
+// =======================
+exports.getHospitalPendingEmergency = async (req, res) => {
+  try {
+    const hospitalId = req.user.id;
+    console.log("🔍 [getHospitalPendingEmergency] Hospital ID:", hospitalId);
+
+    const hospital = await Hospital.findById(hospitalId).select("hospitalName location");
+
+    if (!hospital) {
+      console.warn("⚠️ [getHospitalPendingEmergency] Hospital not found for ID:", hospitalId);
+      return res.status(404).json({ success: false, message: "Hospital not found" });
+    }
+
+    console.log("✅ [getHospitalPendingEmergency] Hospital found:", hospital.hospitalName, "Location:", hospital.location);
+
+    const [hLat, hLng] = (hospital.location || "").split(",").map(Number);
+    if (!Number.isFinite(hLat) || !Number.isFinite(hLng)) {
+      console.warn("⚠️ [getHospitalPendingEmergency] Invalid hospital location:", hospital.location);
+      return res.status(400).json({ success: false, message: "Invalid hospital location" });
+    }
+
+    const emergencies = await Emergency.find({
+      status: { $in: ["pending", "accepted"] },
+      $or: [
+        { hospital: hospitalId },
+        {
+          "destination.lat": hLat,
+          "destination.lng": hLng,
+        },
+      ],
+    })
+      .populate("patient", "firstName lastName phone uhid")
+      .populate("hospital", "hospitalName location");
+
+    console.log("📋 [getHospitalPendingEmergency] Found", emergencies.length, "emergencies for hospital");
+    
+    if (emergencies.length > 0) {
+      emergencies.forEach((e, idx) => {
+        console.log(`  [${idx}] ID: ${e._id}, Status: ${e.status}, Location: ${e.location?.lat}, ${e.location?.lng}, Hospital: ${e.hospital?._id}`);
+      });
+    }
+
+    let nearestEmergency = null;
+    let minDistance = Infinity;
+
+    emergencies.forEach((emergency) => {
+      if (!emergency.location || !Number.isFinite(emergency.location.lat) || !Number.isFinite(emergency.location.lng)) {
+        console.warn("⚠️ [getHospitalPendingEmergency] Emergency has invalid location:", emergency._id);
+        return;
+      }
+
+      const distance = getDistance(hLat, hLng, emergency.location.lat, emergency.location.lng);
+      console.log(`  Distance from emergency ${emergency._id}: ${distance.toFixed(2)} km`);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestEmergency = emergency;
+      }
+    });
+
+    if (!nearestEmergency) {
+      console.log("❌ [getHospitalPendingEmergency] No emergency found for hospital");
+      return res.status(200).json({ success: true, emergency: null });
+    }
+
+    console.log("✅ [getHospitalPendingEmergency] Selected emergency:", nearestEmergency._id, "Distance:", minDistance.toFixed(2), "km");
+
+    return res.status(200).json({
+      success: true,
+      emergency: {
+        booking: {
+          location: nearestEmergency.location,
+          patientName: nearestEmergency.patient
+            ? `${nearestEmergency.patient.firstName || ""} ${nearestEmergency.patient.lastName || ""}`.trim() || "Patient"
+            : "Patient",
+          uhid: nearestEmergency.patient?.uhid,
+          condition: nearestEmergency.emergencyType || "Emergency",
+          vehicleType: "SOS",
+          patientId: nearestEmergency.patient?._id || nearestEmergency.patient,
+        },
+        hospital: nearestEmergency.hospital || hospital,
+        distance: minDistance,
+        emergency: {
+          _id: nearestEmergency._id,
+          patient: nearestEmergency.patient,
+          location: nearestEmergency.location,
+          destination: nearestEmergency.destination,
+          hospital: nearestEmergency.hospital,
+          emergencyType: nearestEmergency.emergencyType,
+          status: nearestEmergency.status,
+          createdAt: nearestEmergency.createdAt,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("❌ [getHospitalPendingEmergency] Error:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
 // =======================
 // 🚑 ACCEPT EMERGENCY

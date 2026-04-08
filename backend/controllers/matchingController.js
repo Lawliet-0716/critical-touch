@@ -1,0 +1,82 @@
+// controllers/matchingController.js
+
+const Driver = require("../models/Driver");
+const PreBooking = require("../models/PreBooking");
+const Hospital = require("../models/Hospital");
+
+// =======================
+// 📍 DISTANCE FUNCTION
+// =======================
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+};
+
+// =======================
+// 🚑 FIND MATCHING DRIVERS
+// =======================
+exports.findMatchingDrivers = async (booking, io) => {
+  try {
+    // =======================
+    // 1️⃣ FIND DRIVERS
+    // =======================
+    const drivers = await Driver.find({
+      ambulanceType: booking.vehicleType,
+      isAvailable: true,
+    });
+
+    // =======================
+    // 2️⃣ FIND NEAREST HOSPITAL
+    // =======================
+    const hospitals = await Hospital.find();
+
+    let nearestHospital = null;
+    let minDistance = Infinity;
+
+    hospitals.forEach((hospital) => {
+      if (!hospital.location) return;
+
+      const [lat, lng] = hospital.location.split(",").map(Number);
+
+      const distance = getDistance(
+        booking.location.lat,
+        booking.location.lng,
+        lat,
+        lng,
+      );
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestHospital = hospital;
+      }
+    });
+
+    // =======================
+    // 3️⃣ EMIT TO HOSPITAL
+    // =======================
+    if (nearestHospital && io) {
+      console.log("🏥 Nearest hospital:", nearestHospital._id);
+
+      io.to(`hospital_${nearestHospital._id}`).emit("newEmergency", {
+        booking,
+        hospital: nearestHospital,
+        distance: minDistance,
+      });
+    }
+
+    return drivers;
+  } catch (error) {
+    console.error("Matching error:", error);
+    return [];
+  }
+};

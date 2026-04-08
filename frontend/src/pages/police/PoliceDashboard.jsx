@@ -1,5 +1,5 @@
 import { useAuth } from "../../hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import socket from "../../socket/socket";
 import PoliceMap from "../../components/maps/PoliceMap";
 
@@ -8,6 +8,8 @@ export default function PoliceDashboard() {
 
   const [policeLocation, setPoliceLocation] = useState(null);
   const [alert, setAlert] = useState(null);
+  const alertRafRef = useRef(null);
+  const latestAlertRef = useRef(null);
 
   // 🔌 CONNECT SOCKET
   useEffect(() => {
@@ -63,12 +65,21 @@ export default function PoliceDashboard() {
     });
 
     socket.on("ambulance_location_update", (data) => {
-      setAlert((prev) => {
-        if (!prev) return data;
-        if (prev?.driverId && data?.driverId && prev.driverId !== data.driverId) {
-          return prev;
-        }
-        return { ...prev, ...data };
+      // Throttle UI updates to animation frames to keep map smooth.
+      latestAlertRef.current = data;
+      if (alertRafRef.current) return;
+      alertRafRef.current = requestAnimationFrame(() => {
+        alertRafRef.current = null;
+        const next = latestAlertRef.current;
+        if (!next) return;
+
+        setAlert((prev) => {
+          if (!prev) return next;
+          if (prev?.driverId && next?.driverId && prev.driverId !== next.driverId) {
+            return prev;
+          }
+          return { ...prev, ...next };
+        });
       });
     });
 
@@ -81,6 +92,8 @@ export default function PoliceDashboard() {
       socket.off("ambulance_nearby");
       socket.off("ambulance_location_update");
       socket.off("ambulance_left");
+      if (alertRafRef.current) cancelAnimationFrame(alertRafRef.current);
+      alertRafRef.current = null;
     };
   }, []);
 

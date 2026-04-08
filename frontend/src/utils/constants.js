@@ -23,20 +23,20 @@ export const ROLES = {
 // ===============================
 export const API_ENDPOINTS = {
   // PATIENT
-  PATIENT_SIGNUP: `${API_BASE_URL}/auth/patient/signup`,
-  PATIENT_SIGNIN: `${API_BASE_URL}/auth/patient/signin`,
+  PATIENT_SIGNUP: `${API_BASE_URL}/api/auth/patient/signup`,
+  PATIENT_SIGNIN: `${API_BASE_URL}/api/auth/patient/signin`,
 
   // DRIVER
-  DRIVER_SIGNUP: `${API_BASE_URL}/auth/driver/signup`,
-  DRIVER_SIGNIN: `${API_BASE_URL}/auth/driver/signin`,
+  DRIVER_SIGNUP: `${API_BASE_URL}/api/auth/driver/signup`,
+  DRIVER_SIGNIN: `${API_BASE_URL}/api/auth/driver/signin`,
 
   // POLICE
-  POLICE_SIGNUP: `${API_BASE_URL}/auth/police/signup`,
-  POLICE_SIGNIN: `${API_BASE_URL}/auth/police/signin`,
+  POLICE_SIGNUP: `${API_BASE_URL}/api/auth/police/signup`,
+  POLICE_SIGNIN: `${API_BASE_URL}/api/auth/police/signin`,
 
   // HOSPITAL
-  HOSPITAL_SIGNUP: `${API_BASE_URL}/auth/hospital/signup`,
-  HOSPITAL_SIGNIN: `${API_BASE_URL}/auth/hospital/signin`,
+  HOSPITAL_SIGNUP: `${API_BASE_URL}/api/auth/hospital/signup`,
+  HOSPITAL_SIGNIN: `${API_BASE_URL}/api/auth/hospital/signin`,
 };
 
 // ===============================

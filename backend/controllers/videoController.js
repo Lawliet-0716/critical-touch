@@ -11,6 +11,13 @@ const serverSecret = process.env.ZEGO_SERVER_SECRET;
 // =======================
 exports.generateToken = async (req, res) => {
   try {
+    if (!appID || !serverSecret) {
+      return res.status(500).json({
+        message:
+          "Video calling is not configured (missing ZEGO_APP_ID / ZEGO_SERVER_SECRET)",
+      });
+    }
+
     const { consultationId } = req.body;
 
     if (!consultationId) {
@@ -48,8 +55,13 @@ exports.generateToken = async (req, res) => {
     // 🔥 Use consultation roomId
     const roomId = consultation.roomId;
 
+    if (!roomId) {
+      return res.status(500).json({ message: "Consultation room is missing" });
+    }
+
     res.json({
-      appID,
+      // Zego SDK expects appID as a number
+      appID: Number(appID),
       // ✅ For development: generate kitToken on client via generateKitTokenForTest.
       // Do NOT expose serverSecret in production.
       serverSecret,

@@ -1,12 +1,12 @@
 import { GoogleMap, Marker, DirectionsRenderer } from "@react-google-maps/api";
 import { useEffect, useRef, useState } from "react";
 
-const containerStyle = {
-  width: "100%",
-  height: "400px",
-};
-
-export default function PatientMap({ patientLocation, driverLocation }) {
+export default function PatientMap({
+  patientLocation,
+  driverLocation,
+  height = "400px",
+  onInfo,
+}) {
   const mapRef = useRef(null);
 
   const [smoothLoc, setSmoothLoc] = useState(driverLocation);
@@ -60,10 +60,12 @@ export default function PatientMap({ patientLocation, driverLocation }) {
           setDirections(result);
 
           const leg = result.routes[0].legs[0];
-          setInfo({
+          const nextInfo = {
             distance: leg.distance.text,
             duration: leg.duration.text,
-          });
+          };
+          setInfo(nextInfo);
+          if (typeof onInfo === "function") onInfo(nextInfo);
 
           const bounds = new window.google.maps.LatLngBounds();
           bounds.extend(smoothLoc);
@@ -72,7 +74,7 @@ export default function PatientMap({ patientLocation, driverLocation }) {
         }
       },
     );
-  }, [smoothLoc, patientLocation]);
+  }, [smoothLoc, patientLocation, onInfo]);
 
   // 🔥 500m DETECTION
   useEffect(() => {
@@ -91,7 +93,7 @@ export default function PatientMap({ patientLocation, driverLocation }) {
   return (
     <div style={{ position: "relative" }}>
       <GoogleMap
-        mapContainerStyle={containerStyle}
+        mapContainerStyle={{ width: "100%", height }}
         center={patientLocation}
         zoom={14}
         onLoad={(map) => (mapRef.current = map)}

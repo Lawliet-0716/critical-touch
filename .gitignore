@@ -1,0 +1,69 @@
+# ----------------------
+
+# Node modules (both frontend & backend)
+
+# ----------------------
+
+node_modules/
+
+# ----------------------
+
+# Logs
+
+# ----------------------
+
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ----------------------
+
+# Frontend (React/Vite)
+
+# ----------------------
+
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# ----------------------
+
+# Backend (Node/Express)
+
+# ----------------------
+
+backend/node_modules/
+
+# ----------------------
+
+# Environment variables
+
+# ----------------------
+
+.env
+.env.*
+!.env.example
+
+# ----------------------
+
+# OS & Editor
+
+# ----------------------
+
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ----------------------
+
+# Misc
+
+# ----------------------
+
+coverage/
+tmp/
+temp/

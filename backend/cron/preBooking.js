@@ -38,7 +38,7 @@ module.exports = (io) => {
         console.log("🚑 Processing booking:", booking._id);
 
         // 🔍 Find matching drivers
-        const drivers = await findMatchingDrivers(booking);
+        const drivers = await findMatchingDrivers(booking, io);
 
         // ✅ Update status
         booking.status = "dispatched";

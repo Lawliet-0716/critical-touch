@@ -22,10 +22,13 @@ export default function HospitalDashboard() {
   // 🔌 SOCKET CONNECTION
   // =======================
   useEffect(() => {
-    if (!user?._id) return;
+    const hospitalId = user?.id || user?._id;
+    if (!hospitalId) return;
+
+    if (!socket.connected) socket.connect();
 
     socket.emit("join", {
-      userId: user._id,
+      userId: hospitalId,
       role: "hospital",
     });
 
@@ -147,7 +150,7 @@ export default function HospitalDashboard() {
                 lat: Number(emergency.hospital?.location?.split(",")[0]),
                 lng: Number(emergency.hospital?.location?.split(",")[1]),
               }}
-              eta={eta}
+              onEta={setEta}
             />
           </div>
 

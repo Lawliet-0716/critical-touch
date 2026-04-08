@@ -6,7 +6,12 @@ const containerStyle = {
   height: "100vh",
 };
 
-export default function DriverHospitalMap({ destination }) {
+export default function DriverHospitalMap({
+  destination,
+  driverLocation: externalDriverLocation,
+  hospitalLocation: externalHospitalLocation,
+  onEta,
+}) {
   const mapRef = useRef(null);
 
   const [driverLocation, setDriverLocation] = useState(null);
@@ -15,6 +20,11 @@ export default function DriverHospitalMap({ destination }) {
 
   // 📍 DRIVER LOCATION (SAFE)
   useEffect(() => {
+    if (externalDriverLocation) {
+      setDriverLocation(externalDriverLocation);
+      return;
+    }
+
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         setDriverLocation({
@@ -27,10 +37,15 @@ export default function DriverHospitalMap({ destination }) {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [externalDriverLocation]);
 
   // 🏥 DESTINATION (patient-selected hospital) OR nearest hospital fallback
   useEffect(() => {
+    if (externalHospitalLocation) {
+      setHospitalLocation(externalHospitalLocation);
+      return;
+    }
+
     if (!driverLocation || !mapRef.current || !window.google) return;
 
     if (
@@ -80,6 +95,12 @@ export default function DriverHospitalMap({ destination }) {
       (res, status) => {
         if (status === "OK") {
           setDirections(res);
+
+          const leg = res?.routes?.[0]?.legs?.[0];
+          const mins = leg?.duration?.value
+            ? Math.max(1, Math.round(leg.duration.value / 60))
+            : null;
+          if (typeof onEta === "function") onEta(mins);
 
           // 🔥 AUTO FIT BOUNDS
           const bounds = new window.google.maps.LatLngBounds();

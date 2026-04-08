@@ -43,14 +43,19 @@ exports.findMatchingDrivers = async (booking, io) => {
     let nearestHospital = null;
     let minDistance = Infinity;
 
+    const origin = booking?.pickupLocation || booking?.location;
+    if (!origin || typeof origin.lat !== "number" || typeof origin.lng !== "number") {
+      console.warn("⚠️ Booking missing pickup coordinates:", booking?._id);
+    }
+
     hospitals.forEach((hospital) => {
       if (!hospital.location) return;
 
       const [lat, lng] = hospital.location.split(",").map(Number);
 
       const distance = getDistance(
-        booking.location.lat,
-        booking.location.lng,
+        origin?.lat,
+        origin?.lng,
         lat,
         lng,
       );

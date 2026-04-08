@@ -3,6 +3,7 @@ const Driver = require("../models/Driver");
 
 // 🔥 ADDED
 const Patient = require("../models/Patient");
+const Hospital = require("../models/Hospital");
 const { sendSOS } = require("../services/smsService");
 
 // 🧠 Distance helper (Haversine formula)
@@ -36,8 +37,9 @@ exports.createEmergency = async (req, res) => {
     });
 
     // 🔥 SEND SMS (FIXED ONLY THIS PART)
+    let patient = null;
     try {
-      const patient = await Patient.findById(req.user.id);
+      patient = await Patient.findById(req.user.id);
 
       if (patient?.emergencyContact) {
         const locationLink = `https://www.google.com/maps?q=${lat},${lng}`;
@@ -59,6 +61,50 @@ Immediate help needed!`;
     }
 
     const io = req.app.get("io");
+
+    // 🏥 notify nearest hospital (for HospitalDashboard)
+    try {
+      const hospitals = await Hospital.find().select("hospitalName location");
+      let nearestHospital = null;
+      let minDistance = Infinity;
+
+      for (const hospital of hospitals) {
+        if (!hospital?.location) continue;
+        const [hLat, hLng] = hospital.location.split(",").map(Number);
+        if (!Number.isFinite(hLat) || !Number.isFinite(hLng)) continue;
+
+        const d = getDistance(lat, lng, hLat, hLng);
+        if (d < minDistance) {
+          minDistance = d;
+          nearestHospital = hospital;
+        }
+      }
+
+      if (nearestHospital && io) {
+        io.to(`hospital_${nearestHospital._id.toString()}`).emit("newEmergency", {
+          // keep payload shape compatible with existing HospitalDashboard
+          booking: {
+            location: { lat, lng },
+            patientName: patient?.firstName || "Patient",
+            condition: emergencyType || "Emergency",
+            vehicleType: "SOS",
+            patientId: req.user.id,
+          },
+          hospital: nearestHospital,
+          distance: minDistance,
+          emergency: {
+            _id: emergency._id,
+            patient: emergency.patient,
+            location: emergency.location,
+            emergencyType: emergency.emergencyType,
+            status: emergency.status,
+            createdAt: emergency.createdAt,
+          },
+        });
+      }
+    } catch (hospitalError) {
+      console.error("❌ Hospital notify failed:", hospitalError.message);
+    }
 
     // 🔥 GET ALL AVAILABLE DRIVERS
     const drivers = await Driver.find({ isAvailable: true });
@@ -225,6 +271,13 @@ exports.completeEmergency = async (req, res) => {
         driverId: emergency.driver.toString(),
         reason: "tripEnded",
         emergencyId: emergency._id.toString(),
+      });
+
+      // 🏥 let hospitals clear their emergency UI
+      // (HospitalDashboard listens for "emergencyEnded")
+      io.to("hospital").emit("emergencyEnded", {
+        emergencyId: emergency._id.toString(),
+        driverId: emergency.driver.toString(),
       });
     }
 

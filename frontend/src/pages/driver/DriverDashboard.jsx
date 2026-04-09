@@ -311,6 +311,15 @@ export default function DriverDashboard() {
     setRequests((prev) => prev.filter((r) => r._id !== req._id));
   };
 
+  // ⏰ CHECK IF PREBOOKING CAN BE ACCEPTED (within 30 min window)
+  const canAcceptPreBooking = (booking) => {
+    if (!booking.scheduledAt) return false;
+    const scheduledTime = new Date(booking.scheduledAt);
+    const now = new Date();
+    const timeDiff = Math.abs(scheduledTime - now) / (1000 * 60); // minutes
+    return timeDiff <= 30; // within 30 minutes
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -458,17 +467,34 @@ export default function DriverDashboard() {
 
                     {/* RIGHT - Actions */}
                     <div className="flex flex-col gap-2 min-w-[120px]">
-                      <button
-                        onClick={() =>
-                          req._kind === "prebooking"
-                            ? handleAcceptPreBooking(req)
-                            : handleAcceptEmergency(req)
-                        }
-                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
-                      >
-                        <CheckCircle size={16} />
-                        Accept
-                      </button>
+                      {req._kind === "prebooking" ? (
+                        canAcceptPreBooking(req) ? (
+                          <button
+                            onClick={() => handleAcceptPreBooking(req)}
+                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                          >
+                            <CheckCircle size={16} />
+                            Accept
+                          </button>
+                        ) : (
+                          <button
+                            disabled
+                            className="bg-gray-300 text-gray-500 px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed font-medium"
+                            title="Available 30 minutes before/after scheduled time"
+                          >
+                            <Clock size={16} />
+                            Not Yet
+                          </button>
+                        )
+                      ) : (
+                        <button
+                          onClick={() => handleAcceptEmergency(req)}
+                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                        >
+                          <CheckCircle size={16} />
+                          Accept
+                        </button>
+                      )}
 
                       <button
                         onClick={() => handleReject(req)}

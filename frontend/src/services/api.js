@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api", // ✅ includes /api
+  baseURL: "https://critical-touch.onrender.com/api", // ✅ production API
 });
 
 // 🔐 Attach token

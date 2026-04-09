@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from langdetect import detect
+import os
 
 # ML
 from sklearn.feature_extraction.text import CountVectorizer
@@ -10,7 +11,7 @@ app = Flask(__name__)
 CORS(app)
 
 # =========================
-# DATASET (ENGLISH + KANNADA + HINDI 🔥)
+# DATASET (ENGLISH + KANNADA + HINDI)
 # =========================
 training_data = [
 
@@ -85,9 +86,9 @@ texts = [x[0] for x in training_data]
 labels = [x[1] for x in training_data]
 
 # =========================
-# TRAIN MODEL 🔥
+# TRAIN MODEL
 # =========================
-vectorizer = CountVectorizer(ngram_range=(1,2))
+vectorizer = CountVectorizer(ngram_range=(1, 2))
 X = vectorizer.fit_transform(texts)
 
 model = LogisticRegression(max_iter=200)
@@ -138,54 +139,40 @@ def get_remedy(severity, lang):
             5: "एम्बुलेंस तुरंत बुलाएं!"
         }
     }
-
     return remedies.get(lang, remedies["en"]).get(severity, "Take care")
 
 # =========================
-# RULE-BASED SAFETY 🚑
+# RULE-BASED SAFETY
 # =========================
 def rule_boost(text):
     text = text.lower()
 
-    # ENGLISH
     if any(k in text for k in ["heart attack", "not breathing", "stroke", "unconscious"]):
         return 5
-
     if any(k in text for k in ["accident", "bleeding"]):
         return 5
-
     if any(k in text for k in ["chest pain", "breathing problem"]):
         return 4
 
-    # KANNADA
     if ("ಉಸಿರಾಟ" in text and "ನಿಲ್ಲ" in text):
         return 5
-
     if any(k in text for k in ["ಹೃದಯಾಘಾತ", "ಸ್ಟ್ರೋಕ್", "ಅವಚೇತನ"]):
         return 5
-
     if any(k in text for k in ["ಅಪಘಾತ", "ರಕ್ತಸ್ರಾವ"]):
         return 5
-
     if ("ಛಾತಿ" in text and "ನೋವು" in text):
         return 4
-
     if ("ಉಸಿರಾಟ" in text and "ತೊಂದರೆ" in text):
         return 4
 
-    # HINDI
     if ("सांस" in text and ("नहीं" in text or "रुक" in text)):
         return 5
-
     if any(k in text for k in ["हार्ट अटैक", "बेहोश", "स्ट्रोक"]):
         return 5
-
     if any(k in text for k in ["एक्सीडेंट", "खून"]):
         return 5
-
     if ("छाती" in text and "दर्द" in text):
         return 4
-
     if ("सांस" in text and "तकलीफ" in text):
         return 4
 
@@ -199,7 +186,6 @@ def classify_text(text):
     prediction = model.predict(X_input)[0]
     confidence = max(model.predict_proba(X_input)[0])
 
-    # Rule override
     rule = rule_boost(text)
     if rule:
         prediction = rule
@@ -217,8 +203,12 @@ def classify_text(text):
     return prediction, confidence, action, remedies
 
 # =========================
-# API
+# ROUTES
 # =========================
+@app.route("/")
+def home():
+    return "ML API Running 🚀"
+
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
@@ -235,14 +225,15 @@ def predict():
             "confidence": round(float(confidence), 3),
             "recommended_action": action,
             "remedies": remedies,
-            "sos_trigger": True if severity == 5 else False  # ✅ FIX
+            "sos_trigger": True if severity == 5 else False
         })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 # =========================
-# RUN
+# RUN (RENDER FIX)
 # =========================
 if __name__ == "__main__":
-    app.run(port=5001, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

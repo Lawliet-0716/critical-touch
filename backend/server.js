@@ -35,9 +35,22 @@ connectDB();
 // =======================
 // ✅ MIDDLEWARE
 // =======================
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "https://critical-touch-1.onrender.com",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "*",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS policy does not allow access from ${origin}`));
+      }
+    },
+    credentials: true,
   }),
 );
 

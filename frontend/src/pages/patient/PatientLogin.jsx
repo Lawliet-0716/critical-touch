@@ -39,9 +39,7 @@ export default function PatientLogin() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
       <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
         {/* Title */}
-        <h2 className="text-2xl font-bold text-center mb-2">
-          🧑‍⚕️ Patient Login
-        </h2>
+        <h2 className="text-2xl font-bold text-center mb-2">Patient Login</h2>
         <p className="text-center text-gray-500 mb-6 text-sm">
           Access your emergency dashboard
         </p>

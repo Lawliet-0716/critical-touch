@@ -41,7 +41,11 @@ export default function RoutePreviewMap({ pickup, hospital }) {
           lat: hospital.lat, // ✅ FIXED
           lng: hospital.lng, // ✅ FIXED
         }}
-        icon="/hospital.png"
+        icon={{
+          url: "/hospital.png",
+          scaledSize: new window.google.maps.Size(32, 32),
+          anchor: new window.google.maps.Point(16, 32),
+        }}
       />
 
       {/* 🗺️ Route */}

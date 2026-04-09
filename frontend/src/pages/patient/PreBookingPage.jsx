@@ -74,8 +74,6 @@ export default function PreBookingPage() {
 
         {/* 📍 PICKUP */}
         <div className="mb-6">
-          <h3 className="font-semibold mb-2">📍 Select Pickup Location</h3>
-
           <PreBookingMap onSelect={setPickup} />
 
           {pickup && (

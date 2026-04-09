@@ -526,20 +526,6 @@ export default function HospitalDashboard() {
           )}
         </Card>
 
-        {/* ======================= */}
-        {/* 🐛 DEBUG PANEL */}
-        {/* ======================= */}
-        {emergency && (
-          <Card
-            title="Debug: Emergency Data"
-            icon={<Activity className="text-gray-600" />}
-            className="bg-gray-50/80"
-          >
-            <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-xs overflow-auto max-h-64">
-              <pre>{JSON.stringify(emergency, null, 2)}</pre>
-            </div>
-          </Card>
-        )}
       </div>
     </div>
   );

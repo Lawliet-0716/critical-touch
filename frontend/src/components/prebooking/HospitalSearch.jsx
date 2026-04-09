@@ -41,9 +41,7 @@ export default function HospitalSearch({ onSelect }) {
   };
 
   return (
-    <div className="mb-6">
-      <h3 className="font-semibold mb-2">🏥 Select Hospital</h3>
-
+    <div>
       <Autocomplete
         onLoad={(ref) => (autoRef.current = ref)}
         onPlaceChanged={handlePlace}
